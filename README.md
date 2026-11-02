@@ -4,6 +4,10 @@ A deployed full-stack personal finance application for tracking income, expenses
 
 **[Live Demo](https://getavero.app)** · [API Documentation](https://api.getavero.app/docs) · [CI Workflow](.github/workflows/ci.yml)
 
+[![AVERO dashboard in Light Mode showing financial totals, cash flow and category breakdowns](docs/screenshots/dashboard.jpg)](docs/screenshots/dashboard.jpg)
+
+[View all screenshots](#screenshots)
+
 ## Overview
 
 AVERO brings account-based financial tracking into one workspace. A React frontend calls a versioned FastAPI API; the backend validates requests, enforces data ownership and persists records in PostgreSQL through SQLAlchemy.
@@ -253,14 +257,49 @@ Nginx serves the production frontend build **in local Docker Compose**; the live
 
 ## Screenshots
 
-Current AVERO screenshots are pending. The existing images in [src/screenshots](src/screenshots/) show the earlier FinanceApp interface and are not presented as the deployed design.
+Production screenshots with synthetic financial data and profile avatars masked for privacy. Each pair shows **Light Mode**, followed by **Dark Mode**. Select an image to view it at full resolution.
 
-| View | Current screenshot |
-| --- | --- |
-| Dashboard | Pending capture of the AVERO overview and financial summaries |
-| Transactions | Pending capture of the transaction list and filters |
-| Budgets | Pending capture of the manual 50/30/20 budget view |
-| Subscriptions | Pending capture of recurring costs and payment dates |
+### Dashboard
+
+<p>
+  <a href="docs/screenshots/dashboard.jpg"><img src="docs/screenshots/dashboard.jpg" alt="AVERO dashboard — Light Mode: balance, income, expenses and cash-flow charts" width="420"></a>
+  <a href="docs/screenshots/dark_dashboard.jpg"><img src="docs/screenshots/dark_dashboard.jpg" alt="AVERO dashboard — Dark Mode: balance, income, expenses and cash-flow charts" width="420"></a>
+</p>
+
+### Transactions
+
+<p>
+  <a href="docs/screenshots/transactions.jpg"><img src="docs/screenshots/transactions.jpg" alt="AVERO transactions — Light Mode: searchable transaction table with categories, dates and amounts" width="420"></a>
+  <a href="docs/screenshots/dark_transactions.jpg"><img src="docs/screenshots/dark_transactions.jpg" alt="AVERO transactions — Dark Mode: searchable transaction table with categories, dates and amounts" width="420"></a>
+</p>
+
+### Budget & Goals
+
+<p>
+  <a href="docs/screenshots/budget.jpg"><img src="docs/screenshots/budget.jpg" alt="AVERO Budget and Goals — Light Mode: manual needs, wants and savings allocations" width="420"></a>
+  <a href="docs/screenshots/dark_budget.jpg"><img src="docs/screenshots/dark_budget.jpg" alt="AVERO Budget and Goals — Dark Mode: manual needs, wants and savings allocations" width="420"></a>
+</p>
+
+### Subscriptions
+
+<p>
+  <a href="docs/screenshots/subscriptions.jpg"><img src="docs/screenshots/subscriptions.jpg" alt="AVERO subscriptions — Light Mode: active recurring commitments, monthly costs and scheduled dates" width="420"></a>
+  <a href="docs/screenshots/dark_subscriptions.jpg"><img src="docs/screenshots/dark_subscriptions.jpg" alt="AVERO subscriptions — Dark Mode: active recurring commitments, monthly costs and scheduled dates" width="420"></a>
+</p>
+
+### Settings
+
+<p>
+  <a href="docs/screenshots/settings.jpg"><img src="docs/screenshots/settings.jpg" alt="AVERO settings — Light Mode: display currency, JSON backup controls and import preview" width="420"></a>
+  <a href="docs/screenshots/dark_settings.jpg"><img src="docs/screenshots/dark_settings.jpg" alt="AVERO settings — Dark Mode: JSON backup controls, import preview and financial reset" width="420"></a>
+</p>
+
+### Authentication
+
+<p>
+  <a href="docs/screenshots/login.jpg"><img src="docs/screenshots/login.jpg" alt="AVERO authentication — Light Mode: sign-in form with empty email and password fields" width="420"></a>
+  <a href="docs/screenshots/dark_login.jpg"><img src="docs/screenshots/dark_login.jpg" alt="AVERO authentication — Dark Mode: sign-in form with empty email and password fields" width="420"></a>
+</p>
 
 ## Future Improvements
 
@@ -268,4 +307,3 @@ Current AVERO screenshots are pending. The existing images in [src/screenshots](
 - Coordinate refresh-token rotation across browser tabs.
 - Add isolated PostgreSQL integration testing to CI alongside the offline suite.
 - Introduce a reproducible Python dependency lockfile.
-- Replace historical screenshots with current desktop and mobile AVERO captures.
