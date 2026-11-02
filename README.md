@@ -1,400 +1,271 @@
-# 💰 Finance Dashboard
+# AVERO — Finance Dashboard
 
-A modern personal finance dashboard built with **React**, **TypeScript**, and **Tailwind CSS**.
+A deployed full-stack personal finance application for tracking income, expenses, budgets and subscriptions. Built with React and TypeScript, a FastAPI REST API, SQLAlchemy and PostgreSQL.
 
-Track your income and expenses, manage budgets, monitor subscriptions, analyze spending with interactive charts, and receive smart financial insights — all in one responsive dashboard.
+**[Live Demo](https://getavero.app)** · [API Documentation](https://api.getavero.app/docs) · [CI Workflow](.github/workflows/ci.yml)
 
----
+## Overview
 
-## 📸 Preview
+AVERO brings account-based financial tracking into one workspace. A React frontend calls a versioned FastAPI API; the backend validates requests, enforces data ownership and persists records in PostgreSQL through SQLAlchemy.
 
-### Dashboard
-![Dashboard](./src/screenshots/dashboard.png)
+The project demonstrates API design, relational modeling, authentication, exact monetary conversion, automated testing, containerization and deployment. Its manually verified production workflow includes registering an account, saving transactions, a budget and subscriptions, then signing in from another device and retrieving the saved data.
 
-### Transactions
-![Transactions](./src/screenshots/transactions.png)
+## Key Features
 
-### Budget Management
-![Budget](./src/screenshots/budget.png)
+- **Financial overview:** income, expenses, balance, category breakdowns, recent transactions and observations based on recorded data. Totals come from backend aggregates rather than the current page of transactions.
+- **Transaction management:** create, edit and delete income or expenses; search, filter, sort and paginate records through the API.
+- **Budget planning:** manually maintained monthly income, needs, wants and savings, with progress against the 50/30/20 allocation. Budget entries are independent of transaction totals.
+- **Subscription tracking:** monthly costs, active/paused status, manually maintained next-payment dates and an active recurring-cost summary. Subscriptions do not automatically create transactions or charge payments.
+- **Multi-currency input and display:** USD, EUR, KZT and RUB, with canonical USD storage. Foreign-currency inputs use exact integer/decimal arithmetic and round once to eight USD decimal places using round-half-to-even. Unchanged edit fields preserve their original stored values.
+- **Account data controls:** JSON export, validated import previews, confirmed replacement/reset and operation receipts for uncertain outcomes. Destructive actions require the account password and typed confirmation.
+- **Responsive interface:** Light/Dark themes, accessible navigation and forms, reduced-motion-aware section reveals, persisted display currency and account-scoped browser-local profile photos.
 
-### Subscriptions
-![Subscriptions](./src/screenshots/subscriptions.png)
+Financial records and currency preferences are stored on the server. Theme, exchange-rate cache and profile photos remain local to each browser; photos do not synchronize between devices. Non-USD conversion requires fresh, validated quotes from the external exchange-rate provider; USD remains usable without it.
 
-### Settings
-![Settings](./src/screenshots/settings.png)
+## Technology Stack
 
-### Smart Insights
-![Insights](./src/screenshots/insights.png)
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, React Router, Tailwind CSS, Recharts, Lucide |
+| Backend | Python 3.13, FastAPI, Uvicorn, Pydantic 2 |
+| Persistence | SQLAlchemy 2.0, psycopg 3, PostgreSQL, Alembic |
+| Authentication | Argon2id password hashing, JWT access tokens, rotating refresh tokens |
+| Local infrastructure | Docker Compose, multi-stage Docker builds, Nginx |
+| Verification | Node.js test runner, pytest, ESLint, TypeScript, npm audit, pip-audit |
+| Hosting and CI | Vercel, Heroku, Heroku Postgres, GitHub Actions |
 
-### Dark Mode
-![Dark Mode](./src/screenshots/dark-mode.png)
+Production uses PostgreSQL 18.4; the isolated local Compose stack uses PostgreSQL 17. Node.js 24 is used by CI and the frontend tests.
 
----
+## Architecture
 
-# ✨ Features
-
-## 📊 Dashboard
-
-- Financial overview
-- Total balance
-- Monthly income
-- Monthly expenses
-- Savings tracking
-- Interactive analytics
-
----
-
-## 💸 Transaction Management
-
-- Add transactions
-- Edit transactions
-- Delete transactions
-- Income & Expense types
-- Category management
-- Currency support
-- Date selection
-
----
-
-## 📈 Analytics
-
-- Expense distribution (Pie Chart)
-- Income vs Expense trends
-- Monthly statistics
-- Time range filters
-- Smart financial insights
-
----
-
-## 🎯 Budget Management
-
-- Category budgets
-- Budget progress tracking
-- 80% warning indicator
-- Overspending detection
-- Financial goals
-
----
-
-## 🔁 Subscription Tracker
-
-Manage recurring payments like:
-
-- Spotify
-- Netflix
-- Gym
-- Internet
-- Mobile
-- Other subscriptions
-
-Includes:
-
-- Monthly cost
-- Next payment date
-- Active subscriptions overview
-
----
-
-## ⚙️ Settings
-
-Customize your dashboard experience:
-
-- Dark / Light theme
-- API-managed display currency
-- Browser-local theme and exchange-rate cache
-- Disabled legacy reset and backup controls
-- User preferences
-
----
-
-## 🌙 User Experience
-
-- Responsive design
-- Dark / Light mode
-- Modern UI
-- Mobile friendly
-- Clean component architecture
-
----
-
-# 📂 Project Structure
-
+```mermaid
+flowchart LR
+    Browser["User browser"] --> Frontend["React + TypeScript SPA<br/>Vercel"]
+    Frontend -->|"HTTPS /api/v1"| API["FastAPI REST API<br/>Heroku"]
+    API --> Services["Authentication and financial services"]
+    Services --> ORM["SQLAlchemy + psycopg"]
+    ORM -->|"Verified TLS"| DB[("PostgreSQL<br/>Heroku Postgres")]
+    Frontend -->|"Public USD exchange rates"| Rates["Exchange-rate provider"]
+    Migrations["Alembic<br/>Explicit production authorization"] --> DB
 ```
+
+React pages use shared providers, custom hooks and an API client. FastAPI handlers validate request schemas and define transaction boundaries; services implement owner-scoped queries and mutations. SQLAlchemy models define database relationships and constraints, while Alembic versions the schema.
+
+```text
 src/
-│
-├── components/
-├── pages/
-├── hooks/
-├── types/
-├── utils/
-├── data/
-├── constants/
-├── assets/
-└── App.tsx
+  api/                 HTTP client, sessions and account data operations
+  components/          Shared controls, navigation and modals
+  features/            Dashboard, transaction, budget and subscription UI
+  hooks/               Resource loading, forms, preferences and theme
+  pages/               Routed application and authentication pages
+  state/               Authentication and financial providers
+  utils/               Money, exchange rates, dates and avatar utilities
+backend/
+  app/api/             FastAPI routes
+  app/services/        Financial, authentication and data-operation services
+  app/models/          SQLAlchemy models
+  alembic/             Versioned migrations
+  tests/               Backend tests
+  verification/        Database safety and production preflight tools
+tests/                 Frontend regression tests
+docker/                Nginx configuration and local-stack tooling
+.github/               CI workflow and dependency-audit policy
 ```
 
----
+## Authentication and Security
 
-# ⚙️ Installation
+- Registration creates a new user and a separate financial owner namespace. The API derives ownership from the authenticated session, not a client-supplied owner ID; record queries include that owner scope.
+- Passwords are hashed with **Argon2id**. Five-minute JWT access tokens stay in frontend memory, and protected requests also check that the server session remains active.
+- Refresh tokens rotate on use and are stored as hashes in PostgreSQL. Production refresh cookies are host-only, **HttpOnly**, **Secure** and **SameSite=Lax**. Logout revokes the session.
+- Cookie-based authentication POSTs require an explicitly allowed origin and the `X-CSRF-Protection` header. Production uses an exact CORS allowlist for the frontend origin.
+- Production authentication rate limits are shared through PostgreSQL and fail closed if the protection cannot operate. Development uses a process-local limiter.
+- Production database connections require `sslmode=verify-full`, an approved CA bundle and TLS 1.2 or later. Migrations require separate target confirmation and never run automatically on application startup.
 
-Clone the repository
+Refresh operations are coordinated within one browser tab. Cross-tab refresh coordination is a remaining limitation; simultaneous refreshes can require signing in again. See the [production runbook](docs/production.md) for deployment, backup and recovery boundaries.
 
-```bash
-git clone https://github.com/ga1ssaa/finance-dashboard.git
+## REST API Overview
+
+All paths below are relative to `/api/v1`. Financial and account-data endpoints require Bearer authentication. Authentication POSTs use the origin/CSRF rules described above.
+
+| Methods | Endpoint | Purpose |
+| --- | --- | --- |
+| `POST` | `/auth/register`, `/auth/login` | Create an account or start a session |
+| `POST` | `/auth/refresh`, `/auth/logout` | Rotate refresh tokens or revoke a session |
+| `GET` | `/auth/me` | Retrieve the authenticated user |
+| `GET`, `POST` | `/transactions`, `/subscriptions` | List or create records |
+| `GET`, `PATCH`, `DELETE` | `/transactions/{id}`, `/subscriptions/{id}` | Retrieve, update or delete an owned record |
+| `GET` | `/dashboard`, `/subscriptions/summary` | Financial aggregates and recurring-cost totals |
+| `GET`, `PATCH` | `/budget`, `/preferences` | Read or update manual budget inputs and display currency |
+| `GET` | `/data/export`, `/data/operations/{key}` | Export account data or retrieve an operation receipt |
+| `POST` | `/data/import/preview`, `/data/reset/preview` | Validate and preview an account data operation |
+| `POST` | `/data/import`, `/data/reset` | Apply a separately confirmed, idempotent operation |
+| `GET` | `/health`, `/health/ready` | Liveness and database/schema readiness |
+
+List endpoints support bounded `limit`/`offset` pagination, date filters and allowlisted sort fields. Transactions additionally support title/category search and type/category filters. Monetary API fields are decimal strings, avoiding JSON floating-point loss.
+
+For request schemas, responses and authentication requirements, use [Swagger UI](https://api.getavero.app/docs) or the [OpenAPI specification](https://api.getavero.app/openapi.json). Local documentation is available at `http://127.0.0.1:8080/docs` in Compose.
+
+## Database Architecture
+
+| Tables | Responsibility |
+| --- | --- |
+| `users`, `owners` | Login identity and a unique financial namespace for each account |
+| `transactions`, `subscriptions` | Owner-scoped financial records and recurring-payment information |
+| `budget_profiles`, `preferences` | One manual budget profile and one preference record per owner |
+| `auth_sessions`, `auth_refresh_tokens` | Session expiry/revocation and refresh-token rotation |
+| `data_operation_receipts` | Owner-scoped, idempotent import/reset results |
+| `auth_rate_limits` | Shared production authentication quotas |
+
+UUID identifiers, foreign keys, uniqueness constraints and check constraints protect relationships and valid amounts. Money is stored as PostgreSQL `NUMERIC(20,8)` and handled with Python `Decimal` on the backend. Transactions and subscriptions have owner/date indexes; authentication and quota tables have supporting indexes.
+
+The migration chain is:
+
+```text
+0001_infrastructure → 0002_models → 0003_auth
+  → 0004_data_operations → 0005_auth_rate_limits
 ```
 
-Go to project
+Alembic records the active revision in `alembic_version`. The production initial-migration runner verifies the actual target, privileges and schema conflicts, including the protected Heroku namespace. It is separate from the isolated local Compose migration service. See [migration sources](backend/alembic/versions/) and the [production migration procedure](docs/production.md#explicit-new-database-migration-approval).
 
-```bash
+## Local Development
+
+### Docker Compose
+
+Requires Docker Engine/Desktop with Compose v2 and Python 3 for the local secret generator. From a fresh checkout:
+
+```sh
+git clone --branch feat/fullstack https://github.com/ga1ssaa/finance-dashboard.git
 cd finance-dashboard
-```
-
-Install dependencies
-
-```bash
-npm install
-```
-
-Run development server
-
-```bash
-npm run dev
-```
-
-Build production version
-
-```bash
-npm run build
-```
-
----
-
-# 📱 Responsive Design
-
-The application is optimized for
-
-- 💻 Desktop
-- 📱 Mobile
-- 📟 Tablet
-
----
-
-# 🧠 Project Highlights
-
-- Modular architecture
-- Reusable components
-- Custom React Hooks
-- Strong TypeScript typing
-- Responsive layout
-- Interactive charts
-- FastAPI persistence
-- Clean UI/UX
-- Feature-based organization
-
----
-
-# 🚀 Future Improvements
-
-- Cloud database
-- Multi-currency support
-- Export to PDF
-- CSV import/export
-- Notifications
-- Recurring transactions
-- AI financial recommendations
-
----
-
-# 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-# 👨‍💻 Author
-
-**Gaisa Aldiyar**
-
-Software Engineering Student
-
-Astana IT University
-
-GitHub:
-https://github.com/ga1ssaa
-## Local full-stack development
-
-### Isolated Docker Compose stack
-
-Docker Desktop / Docker Engine with Compose v2 or newer is required. From the
-repository root, generate dedicated secrets once (Python 3, standard library only):
-
-```sh
 python3 docker/init-env.py
-```
-
-The helper exclusively creates ignored `.env.compose.local` with mode `0600` and
-does not print or replace credentials. Variable names are documented in
-`.env.compose.example`. Keep the generated hexadecimal database password: it is
-also embedded in the container-only SQLAlchemy URL. Do not use `backend/.env`.
-
-Start the entire application with one Compose command:
-
-```sh
 docker compose --env-file .env.compose.local up --build -d --wait
 ```
 
-Open **http://127.0.0.1:8080** (use this exact host, not `localhost`). Nginx serves
-the production Vite build and proxies `/api/` unchanged to FastAPI. The existing
-frontend requires an absolute loopback API URL; Compose builds it with the same
-browser origin. `AVERO_HTTP_PORT` changes both the published port, build-time API
-URL and allowed auth origin. Rebuild/recreate after changing that port.
+Open **http://127.0.0.1:8080** and create a local account. Use this exact host consistently for authentication cookies.
 
-Services: `frontend` (Nginx), `backend` (single-worker FastAPI), `postgres`
-(PostgreSQL 17), and the one-shot `migrate` service. PostgreSQL health gates
-migrations; successful migrations gate backend startup; backend readiness gates
-Nginx startup. Only Nginx publishes a host port, bound to `127.0.0.1`.
+The generator creates an ignored `.env.compose.local` without printing secrets or overwriting an existing file. Compose builds the frontend, serves it with Nginx, proxies `/api/` to FastAPI and applies the migration chain to its dedicated `avero_compose` database. Health checks order database, migration, API and frontend startup. Only Nginx publishes a host port, bound to loopback.
 
-The dedicated Compose project is **`avero-local`**, its database is
-**`avero_compose`**, and its new persistent volume is
-**`avero-local_postgres_phase8_data`**. No host database URL or existing volume is
-mounted or reused. The migration wrapper rejects other hosts/database names and
-applies the existing Alembic chain through `0004_data_operations` to this isolated
-database. The migration approval boundary below still applies to all existing
-development databases. `backend/compose.yaml` remains the separate development
-database setup. Do not override the Compose project name or run this root stack
-with the backend environment file.
-
-This is a **local HTTP stack**, not a production deployment. It deliberately keeps
-`APP_ENV=development`, existing cookies/CSRF/origin rules, one API worker and
-`--no-proxy-headers`; production mode requires the separate reviewed Heroku configuration in [docs/production.md](docs/production.md). Behind
-Nginx, the existing IP rate limits are shared across local users. No auth behavior
-or financial contract is changed. Exchange rates still require the existing
-external provider; no rates are fabricated by Compose.
-
-Verify without printing resolved secrets:
-
-```sh
-docker compose --env-file .env.compose.local config --quiet
-python3 docker/test_config.py
-docker compose --env-file .env.compose.local ps -a
-docker compose --env-file .env.compose.local exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT current_database(), 1"'
-docker compose --env-file .env.compose.local exec -T backend alembic current
-python3 docker/smoke.py
-```
-
-The smoke script uses only the isolated loopback frontend, a newly registered
-synthetic account and transactions created by that run. It checks SPA assets,
-proxied API readiness, authentication/CSRF/cookies, exact USD CRUD/aggregates and
-logout revocation. It removes only its own transaction IDs; the synthetic account
-remains. Pass `--port` if `AVERO_HTTP_PORT` differs from 8080. Container build
-contexts use allowlists that exclude host credentials, backups and dependencies.
-Never print `docker compose config` without `--quiet`: resolved output contains
-secrets. Preserve `.env.compose.local` when reusing the persistent volume; changing
-its password does not rotate an initialized database's credentials.
-
-Stop this stack without deleting its persistent volume:
+The `avero-local` project uses its own named PostgreSQL volume and does not reuse an existing development or production database. Preserve its environment file when reusing the volume. To stop without deleting data:
 
 ```sh
 docker compose --env-file .env.compose.local stop
 ```
 
-Do not use volume deletion or pruning commands. Existing PostgreSQL services,
-`finance_dashboard`, backups and data remain untouched.
+Changing `AVERO_HTTP_PORT` requires rebuilding/recreating the stack. Do not use volume-pruning commands or print resolved Compose configuration containing secrets.
 
-### Native development
+### Native frontend and backend
 
-Financial records, manual budget inputs, and display-currency preferences now use the FastAPI API. Run the backend using [backend/README.md](backend/README.md), then configure and start this frontend:
+Use Node.js 24 and Python 3.13. Install dependencies from the repository root:
 
-```bash
+```sh
+npm ci
+python3.13 -m venv backend/.venv
+backend/.venv/bin/python -m pip install -e './backend[dev]'
 cp -n .env.example .env.local
-npm install
+```
+
+Follow the [backend setup guide](backend/README.md#configure-the-local-database) to configure a dedicated local PostgreSQL database, private `backend/.env` and explicitly approved local migrations. Once that database is prepared, run the API and frontend in separate terminals:
+
+```sh
+backend/.venv/bin/uvicorn --app-dir backend app.main:create_app --factory --host 127.0.0.1 --port 8000 --no-proxy-headers
+```
+
+```sh
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-`VITE_API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`. Local configuration accepts loopback API URLs; use the backend CORS configuration for a different local frontend port. Public HTTPS deployment uses the separate same-site configuration in [docs/production.md](docs/production.md). Restart Vite after changing its environment. This is a local authenticated application; do not expose this development setup publicly. Use `127.0.0.1` for both Vite and the API (or `localhost` for both) so the host-only refresh cookie works across their ports.
+The frontend uses `http://127.0.0.1:8000/api/v1`; local API documentation is at `http://127.0.0.1:8000/docs`. Restart Vite after changing frontend environment variables.
 
-Sign in at `/login` or create an account at `/register`. New registrations start with an empty account. Existing records in the former single-owner namespace are not automatically assigned to registered users.
+## Environment Variables
 
-Access JWTs live only in application memory. Reloading restores the session using the server's HttpOnly refresh cookie. Auth cookie requests include credentials and the required CSRF protection header; ordinary financial requests use the access token. Logout clears the in-memory financial views, drafts, and session and revokes the cookie session. If server logout cannot be confirmed, the app remains gated with a retry action.
+Only public build configuration belongs in `VITE_*` variables. Keep signing keys, database credentials and private environment files outside Git.
 
-Refresh is shared across simultaneous requests in one tab, and cookie-changing operations are serialized. A confirmed authentication rejection may refresh and retry a financial request once. Network failures and ambiguous writes are never automatically retried. Account changes invalidate pending responses before they can populate another account's view.
+| Variable | Scope | Purpose / configuration |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | Frontend | Local: `http://127.0.0.1:8000/api/v1`; production: `https://api.getavero.app/api/v1` |
+| `VITE_APP_ORIGIN` | Frontend | Production browser origin: `https://getavero.app` |
+| `AVERO_DB_PASSWORD` | Local Compose | Generated private database password |
+| `AVERO_AUTH_JWT_SECRET` | Local Compose | Generated private signing key, passed to the backend |
+| `AVERO_HTTP_PORT` | Local Compose | Loopback frontend port; defaults to `8080` |
+| `DATABASE_URL` | Backend | Private SQLAlchemy/psycopg connection URL; provider-managed on Heroku |
+| `AUTH_JWT_SECRET` | Backend | Private signing key, at least 32 UTF-8 bytes |
+| `APP_ENV` | Backend | `development`, `test` or `production` |
+| `CORS_ALLOWED_ORIGINS` | Backend | JSON array of exact permitted browser origins |
+| `PRODUCTION_SITE_DOMAIN` | Production backend | `getavero.app` |
+| `PRODUCTION_API_ORIGIN` | Production backend | `https://api.getavero.app` |
+| `TRUSTED_PROXY` | Production backend | `heroku`, enabling the reviewed router-header handling |
+| `PRODUCTION_DATABASE_HOST`, `PRODUCTION_DATABASE_NAME` | Production backend | Privately approved target identifiers; never substitute a development database |
+| `DATABASE_SSLROOTCERT` | Production backend | Approved CA bundle path; Heroku-24 configuration uses `/usr/lib/ssl/certs/ca-certificates.crt` |
+| `PORT`, `DYNO` | Heroku runtime | Supplied by Heroku; not manually configured |
 
-Multiple tabs share a refresh cookie but do not coordinate refresh rotation. Simultaneous refreshes across tabs may expire the session and require signing in again. Use one active tab for this local setup.
+Variable templates: [frontend](.env.example), [local Compose](.env.compose.example), [native backend](backend/.env.example) and [production backend](backend/production.env.example). Native database-container setup also uses `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB`; follow the backend guide rather than mixing its environment with the root Compose stack.
 
-Transactions and subscriptions are paginated and filtered by the server. Dashboard cards and category charts use full-set backend aggregates, and recurring costs use the backend subscription summary. Successful mutations invalidate active views. Offline/API errors show retry controls and never fall back to demo records. Forms remain open with their input on failed saves.
+## Testing and CI/CD
 
-All persisted monetary values are canonical USD decimal strings with up to eight fractional digits. Display currency is an API preference; rates and theme remain browser-local. Transaction, subscription and manual-budget forms freeze their currency, exact rate and publication time when opened. New or changed foreign-currency amounts use BigInt decimal arithmetic and round **once**, at the USD storage boundary, to eight fractional digits using **round-to-nearest, ties-to-even** (banker's rounding). An exact halfway result chooses the even final USD digit; other results choose the nearest representable value. USD input remains exact with at most eight fractional digits. Zero/negative transactions, results below the positive USD minimum after rounding, and amounts above `999999999999.99999999` USD are rejected. There is no intermediate cent rounding. Unchanged or numerically equivalent edit inputs preserve the original USD string, and non-amount PATCHes omit `amount_usd`. Display formatting uses exact decimal multiplication and presentation rounding without changing stored values. Budget PATCHes include only changed monetary fields; subscription non-amount edits omit `amount_usd`. Each unchanged field retains its original USD string, including touch/revert or equivalent formatting. Budget and subscription amounts remain nonnegative (zero is allowed by their existing contracts); positive inputs that round to zero and overflows are rejected. Manual 50/30/20 budget calculations remain independent of transactions.
-
-Exchange-rate numeric tokens are retained as decimal strings. Non-USD conversions require validated USD-base quotes with a provider publication time no older than 36 hours (to accommodate the provider's daily publication cycle). The cache is refreshed after 12 hours, on financial refresh/retry or page reload; saves recheck freshness even if a form has stayed open. Missing, invalid, future-dated, stale or legacy caches never authorize monetary conversions, and no hardcoded non-USD fallback quotes are used. USD remains available without a rate service. A validated in-memory quote remains usable if browser cache writes fail. If a frozen quote expires, reopen after refreshing rates or choose USD; existing records are never reconverted automatically.
-
-Settings → Export Backup downloads the authenticated account's complete financial snapshot from `GET /api/v1/data/export`. The versioned JSON contains canonical USD decimal strings, calendar dates, nullable budget/preferences, and no internal IDs or authentication data. Export uses a consistent read-only snapshot, independent of the current list page. Limits are 10,000 transactions, 1,000 subscriptions and 5 MiB of JSON; oversized exports fail explicitly rather than truncating data. Downloaded files contain unencrypted financial data and should be stored privately.
-
-Settings → Import Backup selects a local JSON file for a read-only preview through `POST /api/v1/data/import/preview`. Version 1 USD files are validated before the account's complete financial state is fingerprinted; the preview shows file counts, current counts, hypothetical replacement impact and warnings. Files are limited to 5 MiB and encoded requests to 10 MiB. Selecting a file or requesting a preview never imports, stages or replaces records. The displayed SHA-256 identifies the document only. A separate signed authorization expires after ten minutes and is bound to the authenticated user/session, document and current financial state.
-
-Import replacement and financial reset require a separate preview, the account password, an exact typed confirmation and a unique operation key. They replace/reset only the signed-in owner's financial resources; account, authentication sessions, other owners and existing receipts remain intact. Successful operations reload financial views and preferences. Uncertain responses keep financial pages paused: check the receipt or explicitly retry the same operation key with the original document and fresh confirmation. A missing receipt does not prove rollback. Never start a different operation while the outcome is unknown.
-
-Recovery metadata is kept only in memory across navigation and account switches. A full browser reload or tab closure loses that metadata. The confirmation and recovery screens display the operation key and warn before submission: retain the key outside the tab if you need later receipt lookup. Do not assume reload cancels a server operation. Passwords, authorization tokens and financial documents are not persisted to browser storage.
-
-**Migration approval boundary:** the new operations and authorization previews require revision `0004_data_operations`. Its migration and complete SQL are prepared offline only; they have not been applied by this implementation task. On `0003_auth`, these routes fail closed before financial changes. Export and ordinary financial CRUD remain available. Do not apply this migration without separate explicit approval and a verified target/preservation preflight.
-
-Existing financial localStorage data is neither imported nor changed. Legacy migration remains disabled. User JSON data operations are separate from the private administrative PostgreSQL backup/restore tools and never invoke them.
-
-Validation (Node.js 24 for the built-in TypeScript test loader):
-
-```bash
-npm run lint
-npm run build
-node --test tests/phase4.test.mjs tests/phase5-auth.test.mjs tests/phase6-export.test.mjs tests/phase6-preview.test.mjs tests/phase6-operations.test.mjs
-```
-
-`tests/phase4-api.test.mjs` and its fixture describe the earlier unauthenticated integration phase; they are historical and are superseded by the authenticated Phase 5 checks. Do not point a historical fixture at normal development data.
-
-## Continuous integration
-
-[CI](.github/workflows/ci.yml) runs on pushes to `feat/fullstack`, pull requests
-targeting `feat/fullstack` or `main`, and manual dispatch. Four independent jobs
-check the frontend, offline backend tests, Docker configuration/images, and
-dependency security. Actions are pinned to official immutable commit SHAs;
-checkout credentials are not persisted and the token has only `contents: read`.
-
-The frontend uses Node 24, `npm ci`, `node --test tests/*.test.mjs`, ESLint,
-TypeScript and the production build. `RUN_PHASE4_E2E=0` keeps the historical
-database fixture disabled. Backend CI uses Python 3.13, the declared `[dev]`
-dependencies and `python -m pytest -q backend/tests`; `RUN_DATABASE_TESTS=0`
-retains all existing opt-in skips and private-fixture guards. A reserved invalid
-database hostname is set defensively. CI has no PostgreSQL service, private
-environment file, migration execution, backup restore, or database test target.
-The migration unit tests generate SQL offline only.
-
-Docker checks use synthetic interpolation values and `.env.compose.example`.
-Only `config --quiet`, the eight existing configuration tests and image builds
-run; no Compose service is started. The migration image shares the backend
-Dockerfile, so only frontend/backend builds are needed. Node/pip download caches
-are keyed by `package-lock.json`/`backend/pyproject.toml`.
-
-Security scans the npm lockfile without installing/upgrading packages. Python
-requirements are captured from the resolved backend/test environment before the
-pinned `pip-audit` tool is installed. There is currently no Python lockfile, so
-Python resolution can change within the existing declared ranges. The job summary
-lists affected packages, npm severities, Python advisory IDs and available fixes.
-`pip-audit` supplies no severity: Python findings are labeled unrated rather than
-assigned an invented rating. High/critical npm findings and every Python finding
-fail CI; lower npm severities remain reported. Missing, skipped or unavailable
-audit data also fail closed. No advisory exclusions or automatic upgrades are
-configured. Existing dependency findings may therefore make security CI fail
-until a separately reviewed dependency update resolves them.
-
-CI does not publish images, deploy, or use repository/production secrets. Validate
-workflow changes with `actionlint .github/workflows/ci.yml` and run the audit
-report policy tests with:
+After installing the native development dependencies, run frontend verification from the repository root:
 
 ```sh
+RUN_PHASE4_E2E=0 node --test tests/*.test.mjs
+npm run lint
+npx --no-install tsc -b --pretty false
+npm run build
+```
+
+Run backend tests offline with an intentionally non-routable synthetic database target:
+
+```sh
+APP_ENV=test RUN_DATABASE_TESTS=0 \
+  DATABASE_URL='postgresql+psycopg://test:unused@invalid.invalid:1/avero_tests_disabled' \
+  backend/.venv/bin/python -m pytest -q backend/tests
+```
+
+Database integration tests are opt-in and retain separate target/fixture safeguards. Never point them at production or an existing development database. Offline migration tests generate SQL without executing it. Tests cover API validation, ownership, authentication, monetary conversion/rounding, unchanged-value preservation, data operations, navigation and presentation behavior.
+
+[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `feat/fullstack`, pull requests targeting `feat/fullstack` or `main`, and manual dispatch:
+
+| Job | Checks |
+| --- | --- |
+| Frontend | Locked npm install, frontend tests, ESLint, TypeScript and production build |
+| Backend | Python dependency installation and offline pytest suite |
+| Docker | Compose validation, isolation/configuration tests and frontend/backend image builds; no service startup |
+| Dependency Security | npm audit, pip-audit and tested audit-report enforcement |
+
+Actions are pinned to immutable commit SHAs with minimal repository permissions. High/critical npm findings and every Python advisory fail the security gate; findings are not automatically suppressed or upgraded. CI uses no production database or deployment credentials. Deployment is manual rather than part of the workflow.
+
+Additional local configuration checks:
+
+```sh
+python3 docker/test_config.py
 python3 -m unittest discover -s .github/scripts -p 'test_*.py' -q
 ```
 
-## Production preparation
+## Deployment Architecture
 
-The Vercel Hobby + Heroku Basic/Essential-0 preparation, security boundaries,
-manual new-database migration guard and backup/restore runbook are documented in
-[docs/production.md](docs/production.md). No deployment or real migration has been
-performed. Local Compose remains isolated and unchanged.
+| Component | Production deployment |
+| --- | --- |
+| Frontend | Vercel Hobby, Vite static build, SPA routing, `https://getavero.app` |
+| Backend | Heroku Basic, FastAPI/Uvicorn, `https://api.getavero.app` |
+| Database | Heroku Postgres Essential-0, PostgreSQL 18.4, Alembic revision `0005_auth_rate_limits` |
+| CI | GitHub Actions checks before a separately controlled release |
+
+Frontend and API use HTTPS subdomains on the same site. The Heroku Python buildpack installs the backend from the repository root; [Procfile](Procfile) starts `python -m app.production`, which respects Heroku's `PORT` and uses one API worker. The database provides persistent storage independently of dyno filesystems.
+
+Nginx serves the production frontend build **in local Docker Compose**; the live frontend is served by Vercel. Production migrations and backup/recovery procedures are documented in the [deployment runbook](docs/production.md). No migration is performed during web startup.
+
+## Screenshots
+
+Current AVERO screenshots are pending. The existing images in [src/screenshots](src/screenshots/) show the earlier FinanceApp interface and are not presented as the deployed design.
+
+| View | Current screenshot |
+| --- | --- |
+| Dashboard | Pending capture of the AVERO overview and financial summaries |
+| Transactions | Pending capture of the transaction list and filters |
+| Budgets | Pending capture of the manual 50/30/20 budget view |
+| Subscriptions | Pending capture of recurring costs and payment dates |
+
+## Future Improvements
+
+- Add browser-based end-to-end tests against an isolated environment and synthetic accounts.
+- Coordinate refresh-token rotation across browser tabs.
+- Add isolated PostgreSQL integration testing to CI alongside the offline suite.
+- Introduce a reproducible Python dependency lockfile.
+- Replace historical screenshots with current desktop and mobile AVERO captures.
